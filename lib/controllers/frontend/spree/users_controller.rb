@@ -6,18 +6,15 @@ class Spree::UsersController < Spree::StoreController
   include Spree::Core::ControllerHelpers
 
   def show
-    @orders = @user.orders.complete.order('completed_at desc')
+    @orders = @user.orders.complete.order(completed_at: :desc)
   end
 
   def create
-    @user = Spree::User.new(user_params)
-    if @user.save
+    @user = Spree::User.create(user_params)
 
-      if current_order
-        session[:guest_token] = nil
-      end
-
-      redirect_back_or_default(root_url)
+    if @user.persisted?
+      session[:guest_token] = nil if current_order
+      redirect_back_or_default main_app.root_url
     else
       render :new
     end
@@ -38,20 +35,21 @@ class Spree::UsersController < Spree::StoreController
   end
 
   private
-    def user_params
-      params.require(:user).permit(Spree::PermittedAttributes.user_attributes | [:email])
-    end
 
-    def load_object
-      @user ||= spree_current_user
-      authorize! params[:action].to_sym, @user
-    end
+  def user_params
+    params.require(:user).permit(Spree::PermittedAttributes.user_attributes | [:email])
+  end
 
-    def authorize_actions
-      authorize! params[:action].to_sym, Spree::User.new
-    end
+  def load_object
+    @user ||= spree_current_user
+    authorize! params[:action].to_sym, @user
+  end
 
-    def accurate_title
-      Spree.t(:my_account)
-    end
+  def authorize_actions
+    authorize! params[:action].to_sym, Spree::User.new
+  end
+
+  def accurate_title
+    Spree.t(:my_account)
+  end
 end
